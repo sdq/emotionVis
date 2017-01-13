@@ -4,6 +4,3 @@
 
 论文来源:
 C. Zimmerman, M.-K. Stein, D. Hardt, C. Danielsen, and R. Vatrapu, "emotionVis: Designing an Emotion Text Inference Tool for Visual Analytics," pp. 238–244, May 2016. [Online]. Available: http://dl.acm.org/citation.cfm?id=2986230. Accessed: Jan. 8, 2017.
-
-情感识别技术支持:
-杭州语忆科技 [kismet-emotions.com](https://www.kismet-emotions.com)
