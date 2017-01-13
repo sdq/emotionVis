@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from bokeh.io import output_file, show
-from bokeh.charts import Area, defaults
+from bokeh.charts import Area, defaults, Donut
 from bokeh.models import GeoJSONDataSource
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.models import Range1d, HoverTool, CustomJS
 from bokeh.layouts import widgetbox,column,row, gridplot, layout
 from bokeh.models.widgets import Dropdown, TextInput, Button, RadioButtonGroup, Select, Slider, DataTable, DateFormatter, TableColumn
 from bokeh.embed import components
-from bokeh.models.formatters import TickFormatter, String, List
+from bokeh.models.formatters import DatetimeTickFormatter, TickFormatter, String, List
 import numpy as np
 import pandas as pd
 
@@ -26,6 +26,7 @@ dateArray = allData['date']
 #sentiment analysis
 polarityArray = allData['polarity']
 magnitudeArray = allData['magnitude']
+magnitudeArray = np.multiply(magnitudeArray,100)
 confidenceArray = allData['confidence']
 
 #emotion detail
@@ -90,10 +91,48 @@ distributionhover = HoverTool(
         """
     )
 
-distributionChart = figure(title = "情绪分布图", plot_width=1200, plot_height=100, tools = [distributionhover, "pan","wheel_zoom","box_zoom","reset","save"])
-distributionChart.hbar(y=1, height=0.5, left="distributionLeft",
+distributionChart = figure(title = "情绪分布图", toolbar_location="below",
+           toolbar_sticky=False, plot_width=730, plot_height=120, responsive=True,  tools = [distributionhover,"wheel_zoom","box_zoom","reset","save"])
+distributionChart.hbar(y=50, height=100, left="distributionLeft",
        right="distributionRight", color="color", source = distributionSource)
 distributionChart.toolbar.logo = None
+distributionChart.x_range = Range1d(0, 1)
+
+#line chart
+
+timelineSource = ColumnDataSource(
+        data = dict(
+            date = dateArray,
+            review = reviewArray,
+            polarity = polarityArray,
+            magnitude = magnitudeArray
+        )
+    )
+
+timelinehover = HoverTool(
+        tooltips="""
+        <div>
+            <div>
+                <span style="font-size: 15px;">情感得分 @polarity</span>
+            </div>
+            <div>
+                <span style="font-size: 15px;">情感浓度 @magnitude</span>
+            </div>
+        </div>
+        """
+    )
+
+timelineChart = figure(title = "时间轴 - 极性与浓度", toolbar_location="below",
+           toolbar_sticky=False, plot_width = 730, plot_height = 300, responsive=True, tools = [timelinehover,"wheel_zoom","box_zoom","reset","save"])
+timelineChart.toolbar.logo = None
+timelineChart.xaxis.formatter=DatetimeTickFormatter(
+        hours=["%d %B %Y"],
+        days=["%d %B %Y"],
+        months=["%d %B %Y"],
+        years=["%d %B %Y"])
+timelineChart.line("date","polarity", color = "green", line_width=1, source = timelineSource)
+timelineChart.line("date","magnitude", color = "gray", line_width=1, source = timelineSource)
+timelineChart.y_range = Range1d(0, 100)
 
 #area chart
 areadata = dict(
@@ -106,9 +145,11 @@ areadata = dict(
 )
 
 area = Area(areadata, title="情感走势图", legend="top_left",
-             stack=True, xlabel='时间', ylabel='百分比', plot_width=1200, plot_height=400, toolbar_location="below",
-           toolbar_sticky=False,tools = ["pan","wheel_zoom","box_zoom","reset","save"])
+             stack=True, xlabel='时间', ylabel='百分比', plot_width=730, plot_height=300, responsive=True, toolbar_location="below",
+           toolbar_sticky=False,tools = ["wheel_zoom","box_zoom","reset","save"])
 area.toolbar.logo = None
+area.x_range = Range1d(0, 152)
+area.y_range = Range1d(0, 1)
 
 #scatter chart
 
@@ -128,10 +169,10 @@ scatterhover = HoverTool(
         """
     )
 
-scatter = figure(title = "评论分析",tools = [scatterhover, "pan","wheel_zoom","box_zoom","reset","save"])
+scatter = figure(title = "评论分析", responsive=True, plot_width=730, plot_height=730,tools = [scatterhover, "pan","wheel_zoom","box_zoom","reset","save"])
 scatter.xaxis.axis_label = '情感极性'
 scatter.yaxis.axis_label = '情感浓度'
-scatter.y_range = Range1d(0, 1)
+scatter.y_range = Range1d(0, 100)
 scatter.x_range = Range1d(0, 100)
 colors = [colorArray[x] for x in emotionIndexArray]
 
@@ -148,6 +189,9 @@ source = ColumnDataSource(
 scatter.circle('polarity', 'magnitude',
          color='color', legend = 'legend', fill_alpha=0.2, size=10, source = source)
 scatter.toolbar.logo = None
+
+#emotion distribution chart
+
 
 #rank chart
 surpriseRank = np.argsort(-surpriseArray)
@@ -182,7 +226,7 @@ surprisehover = HoverTool(
         """
     )
 
-surpriseRankChart = figure(title = "惊喜排行榜", plot_width=400, plot_height=400, tools = [surprisehover, "pan","wheel_zoom","box_zoom","reset","save"])
+surpriseRankChart = figure(title = "惊喜排行榜", plot_width=365, plot_height=365, responsive=True, tools = [surprisehover,"wheel_zoom","box_zoom","reset","save"])
 surpriseRankChart.hbar(y="y", height=0.5, left=0,
        right="surprise", color=colorArray[0], source = surpriseSource)
 surpriseRankChart.toolbar.logo = None
@@ -213,7 +257,7 @@ likehover = HoverTool(
         """
     )
 
-likeRankChart = figure(title = "喜爱排行榜", plot_width=400, plot_height=400, tools = [likehover, "pan","wheel_zoom","box_zoom","reset","save"])
+likeRankChart = figure(title = "喜爱排行榜", plot_width=365, plot_height=365, responsive=True, tools = [likehover,"wheel_zoom","box_zoom","reset","save"])
 likeRankChart.hbar(y="y", height=0.5, left=0,
        right="like", color=colorArray[1], source = likeSource)
 likeRankChart.toolbar.logo = None
@@ -243,7 +287,7 @@ excitehover = HoverTool(
         """
     )
 
-exciteRankChart = figure(title = "兴奋排行榜", plot_width=400, plot_height=400, tools = [excitehover, "pan","wheel_zoom","box_zoom","reset","save"])
+exciteRankChart = figure(title = "兴奋排行榜", plot_width=365, plot_height=365, responsive=True, tools = [excitehover,"wheel_zoom","box_zoom","reset","save"])
 exciteRankChart.hbar(y="y", height=0.5, left=0,
        right="excite", color=colorArray[2], source = exciteSource)
 exciteRankChart.toolbar.logo = None
@@ -273,7 +317,7 @@ disappointhover = HoverTool(
         """
     )
 
-disappointRankChart = figure(title = "失望排行榜", plot_width=400, plot_height=400, tools = [disappointhover, "pan","wheel_zoom","box_zoom","reset","save"])
+disappointRankChart = figure(title = "失望排行榜", plot_width=365, plot_height=365, responsive=True, tools = [disappointhover, "pan","wheel_zoom","box_zoom","reset","save"])
 disappointRankChart.hbar(y="y", height=0.5, left=0,
        right="disappoint", color=colorArray[3], source = disappointSource)
 disappointRankChart.toolbar.logo = None
@@ -303,7 +347,7 @@ angryhover = HoverTool(
         """
     )
 
-angryRankChart = figure(title = "愤怒排行榜", plot_width=400, plot_height=400, tools = [angryhover, "pan","wheel_zoom","box_zoom","reset","save"])
+angryRankChart = figure(title = "愤怒排行榜", plot_width=365, plot_height=365, responsive=True, tools = [angryhover,"wheel_zoom","box_zoom","reset","save"])
 angryRankChart.hbar(y="y", height=0.5, left=0,
        right="angry", color=colorArray[4], source = angrySource)
 angryRankChart.toolbar.logo = None
@@ -333,13 +377,13 @@ hatehover = HoverTool(
         """
     )
 
-hateRankChart = figure(title = "厌恶排行榜", plot_width=400, plot_height=400, tools = [hatehover, "pan","wheel_zoom","box_zoom","reset","save"])
+hateRankChart = figure(title = "厌恶排行榜", plot_width=365, plot_height=365, responsive=True, tools = [hatehover,"wheel_zoom","box_zoom","reset","save"])
 hateRankChart.hbar(y="y", height=0.5, left=0,
        right="hate", color=colorArray[5], source = hateRankSource)
 hateRankChart.toolbar.logo = None
 
 
 output_file("emotionVis.html", title="emotionVis")
-l = layout([ [distributionChart],
-    [area],[scatter],[surpriseRankChart, likeRankChart, exciteRankChart], [disappointRankChart, angryRankChart, hateRankChart]])
+l = layout([ [distributionChart],[timelineChart],
+    [area],[scatter],[surpriseRankChart, likeRankChart], [exciteRankChart, disappointRankChart], [angryRankChart, hateRankChart]])
 show(l)
